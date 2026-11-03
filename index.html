@@ -1,34 +1,886 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>IHSG Early Warning</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0b0e13;color:#eef2f7;font-family:Inter,Arial,sans-serif}.wrap{max-width:900px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.brand{font-size:22px;font-weight:800}.muted{color:#8d98a8;font-size:13px}.card{background:#121720;border:1px solid #26303d;border-radius:18px;padding:18px;margin:12px 0}.hero{display:flex;justify-content:space-between;gap:15px;align-items:center}.status{font-size:30px;font-weight:900;margin-top:6px}.green{color:#35d399}.yellow{color:#f6c453}.red{color:#ff6262}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{background:#0e131a;border:1px solid #202a36;border-radius:12px;padding:13px}.metric b{display:block;font-size:18px;margin-top:5px}.bar{height:10px;background:#202833;border-radius:10px;overflow:hidden}.fill{height:100%;width:0%;background:#ff6262;transition:.4s}.signals{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.sig{padding:12px;border-radius:12px;background:#0e131a;border:1px solid #202a36}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#6b7280;margin-right:8px}.on{background:#ff6262}.ok{background:#35d399}.warn{background:#f6c453}.btn{background:#1a2330;border:1px solid #344152;color:white;border-radius:10px;padding:9px 13px;cursor:pointer}.small{font-size:12px}.footer{line-height:1.6;color:#8d98a8;font-size:12px}.manual{display:flex;gap:8px;flex-wrap:wrap}.manual input{background:#0e131a;border:1px solid #303b49;color:white;padding:10px;border-radius:9px;width:150px}@media(max-width:650px){.grid{grid-template-columns:repeat(2,1fr)}.signals{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}}
-</style></head>
-<body><div class="wrap">
-<div class="top"><div><div class="brand">🇮🇩 IHSG Early Warning</div><div class="muted">Deteksi potensi IHSG mulai merah</div></div><button class="btn" onclick="refresh()">↻ Refresh</button></div>
-<div class="card hero"><div><div class="muted">STATUS SEKARANG</div><div id="status" class="status yellow">MEMUAT...</div><div id="reason" class="muted">Mengambil data IHSG…</div></div><div style="min-width:190px"><div class="muted">Bearish Pressure</div><div class="bar"><div id="fill" class="fill"></div></div><div id="score" style="margin-top:6px;font-weight:800">0 / 100</div></div></div>
-<div class="grid"><div class="metric"><span class="muted">IHSG</span><b id="price">-</b></div><div class="metric"><span class="muted">EMA 20</span><b id="ema20">-</b></div><div class="metric"><span class="muted">EMA 50</span><b id="ema50">-</b></div><div class="metric"><span class="muted">RSI 14</span><b id="rsi">-</b></div></div>
-<div class="card"><div style="font-weight:800;margin-bottom:12px">Sinyal yang dipantau</div><div class="signals">
-<div class="sig"><span id="d1" class="dot"></span><b>Harga di bawah EMA20</b><div id="t1" class="muted">-</div></div>
-<div class="sig"><span id="d2" class="dot"></span><b>EMA20 di bawah EMA50</b><div id="t2" class="muted">-</div></div>
-<div class="sig"><span id="d3" class="dot"></span><b>RSI melemah</b><div id="t3" class="muted">-</div></div>
-<div class="sig"><span id="d4" class="dot"></span><b>Tekanan volume</b><div id="t4" class="muted">-</div></div>
-</div></div>
-<div class="card"><div style="font-weight:800;margin-bottom:8px">Mode manual / fallback</div><div class="muted small" style="margin-bottom:10px">Jika sumber data publik tidak bisa diakses browser, masukkan data terakhir untuk menjalankan kalkulator sinyal.</div><div class="manual"><input id="mp" type="number" placeholder="Harga IHSG"><input id="me20" type="number" placeholder="EMA20"><input id="me50" type="number" placeholder="EMA50"><input id="mrsi" type="number" placeholder="RSI 14"><input id="mvr" type="number" placeholder="Volume ratio"><button class="btn" onclick="manualCalc()">Analisis</button></div></div>
-<div class="footer">Logika: skor bearish dihitung dari kombinasi harga vs EMA20, EMA20 vs EMA50, RSI, dan volume. Ini adalah early-warning, bukan prediksi pasti. Data otomatis mencoba Yahoo Finance untuk ticker <b>^JKSE</b>. Refresh otomatis setiap 60 detik.</div>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#080b12;
+  color:#f1f5f9;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+.wrap{
+  max-width:760px;
+  margin:auto;
+  padding:20px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px;
+}
+
+.brand{
+  font-size:25px;
+  font-weight:800;
+}
+
+.sub{
+  color:#94a3b8;
+  margin-top:5px;
+  font-size:14px;
+}
+
+button{
+  border:0;
+  border-radius:12px;
+  padding:12px 18px;
+  background:#1e293b;
+  color:white;
+  font-size:15px;
+  font-weight:700;
+}
+
+button:active{
+  transform:scale(.98);
+}
+
+.card{
+  background:#111722;
+  border:1px solid #263244;
+  border-radius:20px;
+  padding:20px;
+  margin-bottom:16px;
+}
+
+.hero{
+  background:#151b27;
+}
+
+.label{
+  color:#94a3b8;
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+.status{
+  font-size:34px;
+  font-weight:900;
+  margin-bottom:5px;
+}
+
+.desc{
+  color:#94a3b8;
+  line-height:1.4;
+}
+
+.scorebar{
+  height:10px;
+  background:#263244;
+  border-radius:20px;
+  overflow:hidden;
+  margin:12px 0 8px;
+}
+
+.scorefill{
+  height:100%;
+  width:0%;
+  background:#64748b;
+  transition:.3s;
+}
+
+.scoretext{
+  font-size:20px;
+  font-weight:800;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.metric{
+  background:#0d121a;
+  border:1px solid #202b3b;
+  border-radius:17px;
+  padding:17px;
+}
+
+.metric .name{
+  color:#94a3b8;
+  font-size:14px;
+  margin-bottom:10px;
+}
+
+.metric .value{
+  font-size:22px;
+  font-weight:800;
+}
+
+.sig{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:15px 0;
+  border-bottom:1px solid #202b3b;
+}
+
+.sig:last-child{
+  border-bottom:0;
+}
+
+.dot{
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#64748b;
+  flex:none;
+}
+
+.on{
+  background:#ef4444;
+  box-shadow:0 0 12px rgba(239,68,68,.5);
+}
+
+.good{
+  background:#22c55e;
+  box-shadow:0 0 12px rgba(34,197,94,.4);
+}
+
+.sigtitle{
+  font-weight:800;
+  font-size:16px;
+}
+
+.sigdesc{
+  color:#94a3b8;
+  font-size:13px;
+  margin-top:3px;
+}
+
+.manual{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+input{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid #334155;
+  background:#0b1018;
+  color:white;
+  font-size:15px;
+  outline:none;
+}
+
+.manual button{
+  width:100%;
+}
+
+.note{
+  color:#64748b;
+  font-size:12px;
+  line-height:1.5;
+  margin-top:15px;
+}
+
+.error{
+  color:#f87171;
+  font-size:13px;
+  margin-top:10px;
+}
+
+@media(max-width:500px){
+  .wrap{
+    padding:16px;
+  }
+
+  .brand{
+    font-size:22px;
+  }
+
+  .status{
+    font-size:31px;
+  }
+
+  .grid{
+    gap:10px;
+  }
+
+  .metric{
+    padding:14px;
+  }
+
+  .manual{
+    grid-template-columns:1fr 1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <div class="brand">🇮🇩 IHSG Early Warning</div>
+      <div class="sub">Deteksi potensi IHSG mulai merah</div>
+    </div>
+
+    <button onclick="refresh()">↻ Refresh</button>
+  </div>
+
+
+  <div class="card hero">
+
+    <div class="label">STATUS SEKARANG</div>
+
+    <div id="status" class="status">MEMUAT...</div>
+
+    <div id="statusDesc" class="desc">
+      Mengambil data IHSG...
+    </div>
+
+    <div class="label" style="margin-top:20px">
+      Bearish Pressure
+    </div>
+
+    <div class="scorebar">
+      <div id="scoreFill" class="scorefill"></div>
+    </div>
+
+    <div id="score" class="scoretext">0 / 100</div>
+
+    <div id="error" class="error"></div>
+
+  </div>
+
+
+  <div class="grid">
+
+    <div class="metric">
+      <div class="name">IHSG</div>
+      <div id="price" class="value">-</div>
+    </div>
+
+    <div class="metric">
+      <div class="name">EMA 20</div>
+      <div id="ema20" class="value">-</div>
+    </div>
+
+    <div class="metric">
+      <div class="name">EMA 50</div>
+      <div id="ema50" class="value">-</div>
+    </div>
+
+    <div class="metric">
+      <div class="name">RSI 14</div>
+      <div id="rsi" class="value">-</div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div style="font-size:20px;font-weight:800;margin-bottom:10px">
+      Sinyal yang dipantau
+    </div>
+
+
+    <div class="sig">
+      <span id="d1" class="dot"></span>
+
+      <div>
+        <div class="sigtitle">
+          Harga di bawah EMA20
+        </div>
+
+        <div id="t1" class="sigdesc">-</div>
+      </div>
+    </div>
+
+
+    <div class="sig">
+      <span id="d2" class="dot"></span>
+
+      <div>
+        <div class="sigtitle">
+          EMA20 di bawah EMA50
+        </div>
+
+        <div id="t2" class="sigdesc">-</div>
+      </div>
+    </div>
+
+
+    <div class="sig">
+      <span id="d3" class="dot"></span>
+
+      <div>
+        <div class="sigtitle">
+          RSI melemah
+        </div>
+
+        <div id="t3" class="sigdesc">-</div>
+      </div>
+    </div>
+
+
+    <div class="sig">
+      <span id="d4" class="dot"></span>
+
+      <div>
+        <div class="sigtitle">
+          Tekanan volume
+        </div>
+
+        <div id="t4" class="sigdesc">-</div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px">
+      Mode manual / fallback
+    </div>
+
+    <div class="desc" style="margin-bottom:15px">
+      Jika data otomatis gagal, masukkan data terakhir secara manual.
+    </div>
+
+    <div class="manual">
+
+      <input id="mp" type="number" step="0.01" placeholder="Harga IHSG">
+
+      <input id="me20" type="number" step="0.01" placeholder="EMA20">
+
+      <input id="me50" type="number" step="0.01" placeholder="EMA50">
+
+      <input id="mrsi" type="number" step="0.01" placeholder="RSI 14">
+
+      <input id="mvol" type="number" step="0.01" placeholder="Volume ratio">
+
+      <button onclick="manualCalc()">Analisis</button>
+
+    </div>
+
+  </div>
+
+
+  <div class="note">
+    Sumber otomatis: Yahoo Finance Chart API melalui proxy.
+    Indikator menggunakan EMA20, EMA50, RSI14 dan volume ratio.
+    Sistem ini merupakan early-warning, bukan prediksi pasti.
+    Data diperbarui otomatis setiap 60 detik.
+  </div>
+
 </div>
+
+
 <script>
+
 let timer;
-function ema(a,n){let k=2/(n+1),e=a[0];for(let i=1;i<a.length;i++)e=a[i]*k+e*(1-k);return e}
-function rsi(a,n=14){if(a.length<=n)return 50;let g=0,l=0;for(let i=1;i<=n;i++){let d=a[i]-a[i-1];g+=Math.max(d,0);l+=Math.max(-d,0)}let ag=g/n,al=l/n;for(let i=n+1;i<a.length;i++){let d=a[i]-a[i-1];ag=(ag*(n-1)+Math.max(d,0))/n;al=(al*(n-1)+Math.max(-d,0))/n}return al===0?100:100-100/(1+ag/al)}
-function setDot(id,on,kind='on'){let x=document.getElementById(id);x.className='dot '+(on?kind:'')}
-function analyze(p,vol,source){let e20=ema(p.slice(-60),20),e50=ema(p.slice(-100),50),rr=rsi(p,14),vr=vol.length?vol[vol.length-1]/(vol.slice(-21,-1).reduce((a,b)=>a+b,0)/Math.max(1,vol.slice(-21,-1).length)):1;
-let s=0; if(p[p.length-1]<e20)s+=30;if(e20<e50)s+=25;if(rr<45)s+=20;if(rr<35)s+=10;if(vr>1.3)s+=15;let label=s>=70?'BEARISH / SELL WARNING':s>=45?'WASPADA — POTENSI MERAH':'NORMAL / BELUM ADA TEKANAN KUAT';let cls=s>=70?'red':s>=45?'yellow':'green';
-status.textContent=label;status.className='status '+cls;score.textContent=s+' / 100';fill.style.width=s+'%';fill.style.background=s>=70?'#ff6262':s>=45?'#f6c453':'#35d399';price.textContent=p[p.length-1].toLocaleString('id-ID',{maximumFractionDigits:2});ema20.textContent=e20.toLocaleString('id-ID',{maximumFractionDigits:2});ema50.textContent=e50.toLocaleString('id-ID',{maximumFractionDigits:2});rsi.textContent=rr.toFixed(1);reason.textContent=source+' • '+new Date().toLocaleTimeString('id-ID');
-setDot('d1',p[p.length-1]<e20,'on');t1.textContent=p[p.length-1]<e20?'Bearish':'Aman';setDot('d2',e20<e50,'on');t2.textContent=e20<e50?'Trend turun':'Trend belum bearish';setDot('d3',rr<45,'warn');t3.textContent=rr<35?'RSI oversold / tekanan kuat':rr<45?'RSI melemah':'RSI relatif kuat';setDot('d4',vr>1.3,'on');t4.textContent='Vol ratio '+vr.toFixed(2)+'x';}
-fetch("https://query1.finance.yahoo.com/...") {try{let now=Math.floor(Date.now()/1000),old=now-86400*5;let u=`https://query1.finance.yahoo.com/v8/finance/chart/%5EJKSE?period1=${old}&period2=${now}&interval=5m&events=history`;let r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('fetch');let j=await r.json(),q=j.chart.result[0],p=q.indicators.quote[0].close.filter(x=>x!=null),v=q.indicators.quote[0].volume||[];v=v.map(x=>x||0);if(p.length<60)throw Error('data');analyze(p,v,'Live ^JKSE');}catch(e){status.textContent='DATA LIVE TIDAK TERSEDIA';status.className='status yellow';reason.textContent='Gunakan mode manual atau buka dari hosting yang mengizinkan request data publik.'}}
-function manualCalc(){let p=+mp.value,e20=+me20.value,e50=+me50.value,rr=+mrsi.value,vr=+mvr.value||1;let s=(p<e20?30:0)+(e20<e50?25:0)+(rr<45?20:0)+(rr<35?10:0)+(vr>1.3?15:0);let label=s>=70?'BEARISH / SELL WARNING':s>=45?'WASPADA — POTENSI MERAH':'NORMAL / BELUM ADA TEKANAN KUAT';status.textContent=label;status.className='status '+(s>=70?'red':s>=45?'yellow':'green');score.textContent=s+' / 100';fill.style.width=s+'%';fill.style.background=s>=70?'#ff6262':s>=45?'#f6c453':'#35d399';price.textContent=p.toLocaleString('id-ID');ema20.textContent=e20.toLocaleString('id-ID');ema50.textContent=e50.toLocaleString('id-ID');rsi.textContent=rr.toFixed(1);reason.textContent='Mode manual';setDot('d1',p<e20,'on');setDot('d2',e20<e50,'on');setDot('d3',rr<45,'warn');setDot('d4',vr>1.3,'on');t1.textContent=p<e20?'Bearish':'Aman';t2.textContent=e20<e50?'Trend turun':'Trend belum bearish';t3.textContent=rr<35?'Oversold':rr<45?'Melemah':'Relatif kuat';t4.textContent='Vol ratio '+vr.toFixed(2)+'x'}
-refresh();timer=setInterval(refresh,60000);
-</script></body></html>
+
+
+/* =========================
+   EMA
+========================= */
+
+function ema(a,n){
+
+  if(!a || a.length===0) return 0;
+
+  let k=2/(n+1);
+
+  let e=a[0];
+
+  for(let i=1;i<a.length;i++){
+    e=a[i]*k+e*(1-k);
+  }
+
+  return e;
+}
+
+
+/* =========================
+   RSI
+========================= */
+
+function rsi(a,n=14){
+
+  if(!a || a.length<=n) return 50;
+
+  let gain=0;
+  let loss=0;
+
+  for(let i=1;i<=n;i++){
+
+    let d=a[i]-a[i-1];
+
+    if(d>0) gain+=d;
+    else loss-=d;
+
+  }
+
+  let avgGain=gain/n;
+  let avgLoss=loss/n;
+
+  for(let i=n+1;i<a.length;i++){
+
+    let d=a[i]-a[i-1];
+
+    let g=d>0?d:0;
+    let l=d<0?-d:0;
+
+    avgGain=(avgGain*(n-1)+g)/n;
+    avgLoss=(avgLoss*(n-1)+l)/n;
+
+  }
+
+  if(avgLoss===0) return 100;
+
+  let rs=avgGain/avgLoss;
+
+  return 100-(100/(1+rs));
+}
+
+
+/* =========================
+   SIGNAL DOT
+========================= */
+
+function setDot(id,on,kind="on"){
+
+  let x=document.getElementById(id);
+
+  x.className="dot";
+
+  if(on){
+    x.classList.add(kind);
+  }
+
+}
+
+
+/* =========================
+   ANALISIS
+========================= */
+
+function analyze(priceData,volumeData){
+
+  let prices=priceData.filter(x=>x!=null);
+
+  let volumes=volumeData.filter(x=>x!=null);
+
+  if(prices.length<20){
+
+    document.getElementById("error").textContent=
+      "Data IHSG belum cukup untuk analisis.";
+
+    return;
+  }
+
+
+  let price=prices[prices.length-1];
+
+  let e20=ema(prices,20);
+
+  let e50=ema(prices,50);
+
+  let r=rsi(prices,14);
+
+
+  let lastVol=volumes[volumes.length-1] || 0;
+
+  let volLookback=volumes.slice(
+    Math.max(0,volumes.length-21),
+    volumes.length-1
+  );
+
+  let avgVol=
+    volLookback.length
+    ? volLookback.reduce((a,b)=>a+b,0)/volLookback.length
+    : lastVol;
+
+
+  let volumeRatio=
+    avgVol>0 ? lastVol/avgVol : 1;
+
+
+  document.getElementById("price").textContent=
+    price.toLocaleString("id-ID",{
+      maximumFractionDigits:2
+    });
+
+  document.getElementById("ema20").textContent=
+    e20.toLocaleString("id-ID",{
+      maximumFractionDigits:2
+    });
+
+  document.getElementById("ema50").textContent=
+    e50.toLocaleString("id-ID",{
+      maximumFractionDigits:2
+    });
+
+  document.getElementById("rsi").textContent=
+    r.toFixed(2);
+
+
+  /* SIGNAL 1 */
+
+  let s1=price<e20;
+
+  setDot("d1",s1);
+
+  document.getElementById("t1").textContent=
+    s1
+    ? "Harga berada di bawah EMA20"
+    : "Harga masih di atas EMA20";
+
+
+  /* SIGNAL 2 */
+
+  let s2=e20<e50;
+
+  setDot("d2",s2);
+
+  document.getElementById("t2").textContent=
+    s2
+    ? "EMA20 berada di bawah EMA50"
+    : "EMA20 masih di atas EMA50";
+
+
+  /* SIGNAL 3 */
+
+  let s3=r<45;
+
+  setDot("d3",s3);
+
+  document.getElementById("t3").textContent=
+    s3
+    ? "RSI menunjukkan momentum melemah"
+    : "RSI belum menunjukkan pelemahan kuat";
+
+
+  /* SIGNAL 4 */
+
+  let s4=volumeRatio>1.2 && price<e20;
+
+  setDot("d4",s4);
+
+  document.getElementById("t4").textContent=
+    s4
+    ? "Volume > rata-rata dan harga tertekan"
+    : "Belum ada tekanan volume signifikan";
+
+
+  /* SCORE */
+
+  let score=0;
+
+  if(s1) score+=30;
+
+  if(s2) score+=30;
+
+  if(s3) score+=20;
+
+  if(s4) score+=20;
+
+
+  document.getElementById("score").textContent=
+    score+" / 100";
+
+  document.getElementById("scoreFill").style.width=
+    score+"%";
+
+
+  /* STATUS */
+
+  let status="";
+  let desc="";
+
+
+  if(score>=70){
+
+    status="WASPADA BEARISH";
+
+    desc=
+      "Tekanan bearish cukup kuat. Waspadai penurunan lanjutan.";
+
+  }
+  else if(score>=40){
+
+    status="MULAI MELEMAH";
+
+    desc=
+      "Beberapa sinyal bearish mulai muncul. Perhatikan support.";
+
+  }
+  else{
+
+    status="CENDERUNG BULLISH";
+
+    desc=
+      "Tekanan bearish masih relatif rendah.";
+
+  }
+
+
+  document.getElementById("status").textContent=status;
+
+  document.getElementById("statusDesc").textContent=desc;
+
+  document.getElementById("error").textContent="";
+
+}
+
+
+/* =========================
+   DATA OTOMATIS
+========================= */
+
+async function refresh(){
+
+  document.getElementById("status").textContent=
+    "MEMUAT...";
+
+  document.getElementById("statusDesc").textContent=
+    "Mengambil data IHSG...";
+
+  document.getElementById("error").textContent="";
+
+
+  try{
+
+    /*
+      IHSG Yahoo Finance = ^JKSE
+
+      proxy digunakan supaya GitHub Pages
+      tidak terkena CORS.
+    */
+
+    const yahooUrl=
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5EJKSE?range=6mo&interval=1d";
+
+    const url=
+      "https://proxy.cors.dev/"+yahooUrl;
+
+
+    const response=
+      await fetch(url);
+
+
+    if(!response.ok){
+
+      throw new Error(
+        "HTTP "+response.status
+      );
+
+    }
+
+
+    const data=
+      await response.json();
+
+
+    const result=
+      data?.chart?.result?.[0];
+
+
+    if(!result){
+
+      throw new Error(
+        "Data Yahoo tidak ditemukan"
+      );
+
+    }
+
+
+    const quote=
+      result.indicators?.quote?.[0];
+
+
+    if(!quote || !quote.close){
+
+      throw new Error(
+        "Data harga IHSG kosong"
+      );
+
+    }
+
+
+    const closes=
+      quote.close;
+
+    const volumes=
+      quote.volume || [];
+
+
+    analyze(closes,volumes);
+
+
+  }
+  catch(e){
+
+    console.error(e);
+
+    document.getElementById("status").textContent=
+      "DATA GAGAL";
+
+    document.getElementById("statusDesc").textContent=
+      "Data otomatis tidak dapat diambil.";
+
+    document.getElementById("error").textContent=
+      "Error: "+e.message;
+
+  }
+
+}
+
+
+/* =========================
+   MANUAL CALCULATOR
+========================= */
+
+function manualCalc(){
+
+  let p=
+    Number(document.getElementById("mp").value);
+
+  let e20=
+    Number(document.getElementById("me20").value);
+
+  let e50=
+    Number(document.getElementById("me50").value);
+
+  let r=
+    Number(document.getElementById("mrsi").value);
+
+  let vr=
+    Number(document.getElementById("mvol").value);
+
+
+  if(
+    !p ||
+    !e20 ||
+    !e50 ||
+    !r
+  ){
+
+    document.getElementById("error").textContent=
+      "Isi Harga IHSG, EMA20, EMA50 dan RSI.";
+
+    return;
+  }
+
+
+  let s1=p<e20;
+
+  let s2=e20<e50;
+
+  let s3=r<45;
+
+  let s4=vr>1.2 && p<e20;
+
+
+  setDot("d1",s1);
+
+  setDot("d2",s2);
+
+  setDot("d3",s3);
+
+  setDot("d4",s4);
+
+
+  document.getElementById("t1").textContent=
+    s1
+    ?"Harga di bawah EMA20"
+    :"Harga di atas EMA20";
+
+
+  document.getElementById("t2").textContent=
+    s2
+    ?"EMA20 di bawah EMA50"
+    :"EMA20 di atas EMA50";
+
+
+  document.getElementById("t3").textContent=
+    s3
+    ?"RSI melemah"
+    :"RSI belum lemah";
+
+
+  document.getElementById("t4").textContent=
+    s4
+    ?"Tekanan volume tinggi"
+    :"Tekanan volume rendah";
+
+
+  let score=0;
+
+  if(s1)score+=30;
+
+  if(s2)score+=30;
+
+  if(s3)score+=20;
+
+  if(s4)score+=20;
+
+
+  document.getElementById("score").textContent=
+    score+" / 100";
+
+  document.getElementById("scoreFill").style.width=
+    score+"%";
+
+
+  let status=
+    score>=70
+    ?"WASPADA BEARISH"
+    :score>=40
+    ?"MULAI MELEMAH"
+    :"CENDERUNG BULLISH";
+
+
+  document.getElementById("status").textContent=
+    status;
+
+
+  document.getElementById("statusDesc").textContent=
+    "Analisis menggunakan data manual.";
+
+}
+
+
+/* =========================
+   START
+========================= */
+
+refresh();
+
+timer=setInterval(
+  refresh,
+  60000
+);
+
+</script>
+
+</body>
+</html>
